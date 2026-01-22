@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>垂坤團購統計</title>
+<style>
+  body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+  .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+  h2 { text-align: center; color: #333; margin-bottom: 20px; }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+  select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+  input[readonly] { background-color: #e9ecef; color: #555; }
+  
+  /* 按鈕樣式區域 */
+  .btn-group { display: flex; flex-direction: column; gap: 10px; }
+  
+  button { width: 100%; padding: 12px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: opacity 0.3s; color: white; }
+  
+  /* 送出按鈕 (紅色) */
+  #submitBtn { background-color: #d9534f; }
+  #submitBtn:hover { background-color: #c9302c; }
+  #submitBtn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+  /* 查看明細按鈕 (藍色) */
+  #checkBtn { background-color: #5bc0de; }
+  #checkBtn:hover { background-color: #31b0d5; }
+
+  #status { margin-top: 15px; text-align: center; font-size: 14px; min-height: 20px; }
+  .success { color: green; }
+  .error { color: red; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🤫 垂坤團購秘密下單</h2>
+  <form id="orderForm">
+    <div class="form-group">
+      <label for="user">我是誰：</label>
+      <select id="user" required>
+        <option value="" disabled selected>請選擇訂購人</option>
+        <option value="Jane">Jane</option>
+        <option value="小台">小台</option>
+        <option value="榴槤哥">榴槤哥</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="product">訂購品項：</label>
+      <select id="product" required>
+        <option value="" disabled selected>請選擇商品</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="price">單價：</label>
+      <input type="text" id="price" readonly placeholder="選擇商品後顯示">
+    </div>
+
+    <div class="form-group">
+      <label for="quantity">數量：</label>
+      <input type="number" id="quantity" min="1" value="1" required>
+    </div>
+
+    <div class="form-group">
+      <label for="total">總金額：</label>
+      <input type="text" id="total" readonly placeholder="0">
+    </div>
+
+    <div class="btn-group">
+      <button type="submit" id="submitBtn">送出訂單</button>
+      <button type="button" id="checkBtn">📊 查看目前訂購明細</button>
+    </div>
+    
+    <div id="status"></div>
+  </form>
+</div>
+
+<script>
+  // 商品資料
+  const products = [{"name":"特製肉脯鬆","price":150},{"name":"[新品]麻辣魚皮","price":100},{"name":"海苔肉鬆","price":150},{"name":"[新品]糖粒紅片","price":100},{"name":"兒童肉鬆","price":150},{"name":"[新品]勁辣魚片","price":50},{"name":"純肉鬆","price":150},{"name":"古早味紅片","price":50},{"name":"肉脯","price":150},{"name":"鱈魚香絲","price":50},{"name":"肉鬆小脆餅","price":150},{"name":"香烤魷魚片","price":200},{"name":"港式蘿蔔糕","price":80},{"name":"小燒卷","price":200},{"name":"飛卷片","price":200},{"name":"(新品)柚香肉干","price":200},{"name":"魷魚絲","price":200},{"name":"原味筷子肉干","price":200},{"name":"碳烤絲","price":200},{"name":"泰式方塊肉干","price":200},{"name":"魷魚片","price":200},{"name":"泰式筷子肉干","price":200},{"name":"旗魚鬆","price":150},{"name":"原味肉條","price":200},{"name":"旗魚脯","price":150},{"name":"大絲肉條","price":200},{"name":"柴魚丁角","price":150},{"name":"豬肉片","price":200},{"name":"鮪魚丁角","price":150},{"name":"麻辣豬肉片","price":200},{"name":"黑胡椒切片鱈魚風味","price":150},{"name":"沙茶豬肉片","price":200},{"name":"塔香切片鱈魚風味","price":150},{"name":"豬肉條","price":200},{"name":"魯肉切片鱈魚風味","price":150},{"name":"檸檬豬肉條","price":200},{"name":"麻辣切片鱈魚風味","price":150},{"name":"黑胡椒豬肉條","price":200},{"name":"黑芝麻鱈魚香絲","price":200},{"name":"豬肉角","price":300},{"name":"鱈魚風味條","price":100},{"name":"黑胡椒厚肉干","price":200},{"name":"烘烤片","price":100},{"name":"原味薄肉干","price":200},{"name":"香之魚","price":100},{"name":"黑胡椒薄肉干","price":200},{"name":"海苔酥片","price":90},{"name":"原味杏仁肉干","price":200},{"name":"杏仁酥片","price":90},{"name":"黑胡椒杏仁肉干","price":200},{"name":"(新品)黑秈糙米花生米香(純素)","price":150},{"name":"原味檸檬肉干","price":200},{"name":"(新品)魚池鄉香菇(純素)","price":450},{"name":"辣味檸檬肉干","price":200},{"name":"(新品)魚池鄉鈕扣菇(純素)","price":315},{"name":"蜜汁肉干","price":200},{"name":"(新品)米脆片(純素)","price":100},{"name":"五香牛肉干","price":300},{"name":"(新品)麻辣鴨血","price":150},{"name":"黑胡椒牛肉干","price":300},{"name":"香滷蛋(蛋奶素)","price":150},{"name":"牛肉角","price":300},{"name":"燕麥脆餅(奶素)","price":150},{"name":"牛腱條","price":150},{"name":"小鳳梨酥(蛋奶素)","price":100},{"name":"牛腱","price":120},{"name":"黑米燒海苔脆片(純素)","price":100},{"name":"紅茶香瓜子(純素)","price":50},{"name":"台灣青仁黑豆 (純素)","price":50},{"name":"焦糖香瓜子(純素)","price":50},{"name":"香鐵蛋 (蛋素)","price":80},{"name":"奶香葵瓜子(奶素)","price":50},{"name":"蜂蜜乳酪絲(奶素)","price":200},{"name":"杏仁小魚干","price":100},{"name":"辣味乳酪絲(奶素)","price":200},{"name":"起司蠶豆酥","price":100},{"name":"波羅蜜(純素)","price":100},{"name":"竹炭花生(純素)","price":100},{"name":"芋頭條(純素)","price":100},{"name":"椒麻花生(純素)","price":150},{"name":"綜合蔬果乾(純素)","price":100},{"name":"剝皮辣花生","price":150},{"name":"素香鬆(純素)","price":100},{"name":"香酥腰果","price":200},{"name":"素蹄筋(純素)","price":100},{"name":"原味腰果(純素)","price":200},{"name":"辣素蹄筋(純素)","price":100},{"name":"椒麻豆丁(純素)","price":50},{"name":"素黑胡椒肉條(純素)","price":150},{"name":"香蒜粄條","price":100},{"name":"素蜜汁肉干(純素)","price":150},{"name":"沙茶豆干","price":100},{"name":"素香菇素蹄(奶素)","price":150},{"name":"蒜片豆干","price":100},{"name":"五香蒟蒻干(純素)","price":150},{"name":"[辣]鹹酥雞風味豆干(純素)","price":100},{"name":"化核李","price":100},{"name":"Q心豆干(純素)","price":100},{"name":"綜合梅","price":50},{"name":"黑豆干(純素)","price":100},{"name":"原味梅片","price":50},{"name":"香Q條豆干(純素)","price":100},{"name":"檸檬果乾","price":50},{"name":"沙茶辣豆干(純素)","price":100},{"name":"仙楂餅","price":50},{"name":"黃金條辣豆干(純素)","price":100},{"name":"蘋果果乾","price":100},{"name":"紅藜麥(純素)","price":190},{"name":"一口梅肉","price":100},{"name":"濕紙巾（10抽）","price":15},{"name":"台灣脆梅","price":100},{"name":"[新品]麥茶茶包","price":150},{"name":"果實感芒果乾","price":100},{"name":"凍頂烏龍茶茶包","price":150},{"name":"蕃茄果乾","price":100},{"name":"小葉紅紅茶茶包","price":150},{"name":"鳳梨果乾","price":100},{"name":"草莓果乾","price":100},{"name":"香橙片","price":100},{"name":"紅薑黃橄欖","price":100},{"name":"黃草橄欖","price":100},{"name":"甘甜梅","price":100},{"name":"葡萄乾","price":100},{"name":"梅粉葡萄乾","price":100},{"name":"芭樂乾","price":100},{"name":"哈密瓜乾","price":120},{"name":"蔓越莓乾","price":150},{"name":"芒果乾","price":150},{"name":"野生藍莓乾","price":150},{"name":"愛文芒果乾","price":200},{"name":"乾拌麵-酢醬","price":40},{"name":"乾拌麵-四川椒麻","price":40},{"name":"乾拌麵-麻辣醬香","price":40},{"name":"肯亞濾掛式咖啡","price":200},{"name":"蘇門答臘濾掛式咖啡","price":200},{"name":"(新品)雞汁青蔥捲捲餅","price":50},{"name":"耶加雪菲-咖啡豆","price":250},{"name":"(新品)蒜味脆貝餅","price":50},{"name":"早餐配方-咖啡豆","price":170},{"name":"(新品)辣味起司洋芋片","price":50},{"name":"巴西嘉年華-咖啡豆","price":200},{"name":"(新品)椒香玉米球","price":50},{"name":"曼特寧-咖啡豆","price":250},{"name":"起司爆米花-分享桶","price":150},{"name":"極致老饕-咖啡豆","price":180},{"name":"可可米菓","price":110},{"name":"古吉罕貝拉-咖啡豆","price":300},{"name":"海苔爆米花仙貝","price":100},{"name":"布朗尼脆餅","price":100},{"name":"花生香Q餅","price":100},{"name":"(新品)黑芝麻牛軋糖【蛋奶素】","price":100},{"name":"黑糖香Q餅","price":100},{"name":"芝麻核桃糕【純素】","price":100},{"name":"麻辣油條","price":90},{"name":"黃金芒果牛軋糖【奶素】","price":130},{"name":"魚薯條","price":55},{"name":"原味米牛軋糖【奶素】","price":250},{"name":"蚵仔酥-鹹蛋黃","price":55},{"name":"南 棗 核 桃 糕【純素】","price":270},{"name":"起司-三角脆薯","price":50},{"name":"椒鹽豆腐餅乾","price":80},{"name":"海苔-三角脆薯","price":50},{"name":"[新品]台式烤海苔-原味-純素","price":50},{"name":"海苔蝦圈圈","price":50},{"name":"[新品]芝麻蕨餅(純素)","price":50},{"name":"川辣蝦條","price":50},{"name":"[新品]椰香紅豆串糰子(純素)","price":50},{"name":"甘梅風味薯條","price":50},{"name":"(新品)汽水風味跳跳棉花糖","price":35},{"name":"香辣小薯條","price":50},{"name":"(新品)鹽味薯條","price":100},{"name":"番薯片","price":50},{"name":"(新品)荔枝味蒟蒻凍","price":50},{"name":"起司豆脆片","price":50},{"name":"焦糖爆米花-分享桶","price":150},{"name":"卡哩棒-田園香蔥","price":50},{"name":"可可爆米花-分享桶","price":150},{"name":"香脆豌豆","price":50},{"name":"花生粩","price":100},{"name":"蝦之脆","price":50},{"name":"綜        合       芝     麻     球","price":100},{"name":"蝦    餅","price":50},{"name":"黑芝麻貢糖","price":100},{"name":"蒜辣蝦餅","price":50},{"name":"花生貢糖","price":100},{"name":"玉米條","price":50},{"name":"台式烤海苔-椒鹽口味","price":50},{"name":"蒜香土司","price":50},{"name":"台式烤海苔-素辣口味","price":50},{"name":"金玉米","price":50},{"name":"烏梅軟糖","price":50},{"name":"真魷味","price":50},{"name":"薑母軟糖","price":50},{"name":"鹹蔬餅","price":50},{"name":"海苔仙貝","price":50},{"name":"小月亮餅","price":50},{"name":"海苔米果","price":50},{"name":"蚵仔煎風味洋芋片","price":50},{"name":"耳朵餅","price":50},{"name":"辛辣洋芋片","price":50},{"name":"哈士條","price":50},{"name":"烤雞洋芋片","price":50},{"name":"卡哩卡哩-甜味","price":50},{"name":"酸辣洋芋捲","price":50},{"name":"玫瑰鹽洋芋片","price":50},{"name":"洋芋球","price":50},{"name":"海苔洋芋片","price":50},{"name":"海苔鬆餅","price":50},{"name":"洋芋圈","price":50},{"name":"芥茉鬆餅","price":50},{"name":"小麻條","price":50},{"name":"黑胡椒鬆餅","price":50},{"name":"果凍條","price":50},{"name":"漢堡糖","price":50},{"name":"(新品)蜂蜜小煎餅","price":150},{"name":"棉花糖","price":50},{"name":"(新品)起司風味蛋捲","price":100},{"name":"包餡棉花糖","price":50},{"name":"杏仁餅","price":150},{"name":"水果軟糖","price":50},{"name":"可可脆餅","price":100},{"name":"(新品)焦糖甜甜圈","price":50},{"name":"松露方塊酥","price":100},{"name":"(新品)草莓優格風味米餅","price":50},{"name":"芝麻滴蛋捲","price":100},{"name":"益生菌蒟蒻凍","price":50},{"name":"鹹蛋黃酥棒","price":50},{"name":"海苔鹽蘇打餅","price":50},{"name":"糙米牛奶棒","price":50},{"name":"蜂蜜檸檬麥芽餅","price":50},{"name":"金沙蛋黃麥芽餅","price":50},{"name":"黑糖麥芽餅","price":50},{"name":"桃　　　酥","price":50},{"name":"鮮奶骨餅","price":50},{"name":"乳香奶酥","price":50},{"name":"星形巧克力風味米餅","price":50},{"name":"小饅頭餅乾","price":50},{"name":"酥糖土司","price":50},{"name":"卡哩卡哩-鹹蛋黃","price":50},{"name":"巧克力風味甜甜圈","price":50},{"name":"黑糖沙琪瑪","price":50},{"name":"牛奶甜甜圈","price":50},{"name":"芋頭牛奶脆捲","price":50},{"name":"卡哩卡哩-海苔","price":50},{"name":"草莓捲心餅","price":50},{"name":"數字餅","price":50},{"name":"奶油風味捲心餅","price":50},{"name":"飛機餅","price":50},{"name":"格子煎餅","price":50},{"name":"菜脯風味餅","price":50},{"name":"海苔煎餅","price":50},{"name":"可可捲心酥","price":50},{"name":"黑芝麻煎餅","price":50},{"name":"咖啡捲心酥","price":50}];
+
+  // 🔴 請在這裡填入你的 Google Script 網址 🔴
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbwfYe_UsgIDwhxgZbCn_cqReK_Pmr0WIYgzjkWzeqDiDiW207j3uTe1LhEj7O9FXmEG/exec'; 
+  
+  // 🔵 請在這裡填入你的 Google Sheet 試算表連結 (記得要開權限給知道連結的人) 🔵
+  const sheetURL = 'https://docs.google.com/spreadsheets/d/11CtFqrLgr-ef2QWkZ59Ign-_AN-O_XtUZ_aD9zTU2O0/edit?gid=0#gid=0';
+
+  const productSelect = document.getElementById('product');
+  const priceInput = document.getElementById('price');
+  const quantityInput = document.getElementById('quantity');
+  const totalInput = document.getElementById('total');
+  const form = document.getElementById('orderForm');
+  const statusDiv = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+  const checkBtn = document.getElementById('checkBtn');
+
+  // 初始化商品下拉選單
+  products.forEach(p => {
+    const option = document.createElement('option');
+    option.value = p.name;
+    option.textContent = p.name;
+    option.dataset.price = p.price;
+    productSelect.appendChild(option);
+  });
+
+  // 更新價格與總金額
+  function updateCalc() {
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const price = selectedOption.dataset.price ? parseInt(selectedOption.dataset.price) : 0;
+    const quantity = parseInt(quantityInput.value) || 0;
+    
+    priceInput.value = price;
+    totalInput.value = price * quantity;
+  }
+
+  productSelect.addEventListener('change', updateCalc);
+  quantityInput.addEventListener('input', updateCalc);
+
+  // 查看訂購明細按鈕事件
+  checkBtn.addEventListener('click', () => {
+    if(!sheetURL || sheetURL.includes("你的_GOOGLE_SHEET_連結")) {
+        alert("請先在 HTML 程式碼中設定 Google Sheet 連結！");
+    } else {
+        window.open(sheetURL, '_blank');
+    }
+  });
+
+  // 送出表單
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    
+    if(!scriptURL || scriptURL.includes("你的_GOOGLE_SCRIPT_網址")) {
+      alert("請先在 HTML 程式碼中設定 Google Script 網址！");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusDiv.textContent = "資料傳送中...";
+    statusDiv.className = "";
+
+    const data = {
+      user: document.getElementById('user').value,
+      product: productSelect.value,
+      price: priceInput.value,
+      quantity: quantityInput.value,
+      total: totalInput.value
+    };
+
+    fetch(scriptURL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      statusDiv.textContent = "✅ 訂單已送出！";
+      statusDiv.className = "success";
+      form.reset();
+      updateCalc(); 
+      setTimeout(() => { 
+        submitBtn.disabled = false; 
+        statusDiv.textContent = "";
+      }, 3000);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      statusDiv.textContent = "❌ 連線錯誤，請檢查網址或網路。";
+      statusDiv.className = "error";
+      submitBtn.disabled = false;
+    });
+  });
+</script>
+
+</body>
+</html>
