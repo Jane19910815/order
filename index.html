@@ -50,7 +50,7 @@
     </div>
 
     <div class="form-group">
-      <label for="product">訂購品項 (已分類)：</label>
+      <label for="product">訂購品項 (已含單價)：</label>
       <select id="product" required>
         <option value="" disabled selected>請選擇商品</option>
         </select>
@@ -144,7 +144,8 @@
     items.forEach(p => {
         const option = document.createElement('option');
         option.value = p.name;
-        option.textContent = p.name;
+        // 🔴 這裡就是修改的地方：加上價格顯示 🔴
+        option.textContent = `${p.name} - $${p.price}`; 
         option.dataset.price = p.price;
         group.appendChild(option);
     });
